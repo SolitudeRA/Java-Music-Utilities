@@ -1,4 +1,4 @@
 package org.protogalaxy.multimedia;
 
-public class main {
+public class ReadMetadata {
 }
