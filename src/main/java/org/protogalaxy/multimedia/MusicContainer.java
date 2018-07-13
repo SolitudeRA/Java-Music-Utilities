@@ -19,6 +19,7 @@ public class MusicContainer {
         av_register_all();
         avformat_open_input(avFormatContext, path.toString(), null, null);
         avformat_find_stream_info(avFormatContext, (PointerPointer) null);
+        av_dump_format(avFormatContext, 0, path.toString(), 0);
     }
 
     public MusicContainer(byte[] stream) {

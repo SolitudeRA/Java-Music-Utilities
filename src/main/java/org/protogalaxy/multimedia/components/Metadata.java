@@ -5,8 +5,11 @@ import static org.bytedeco.javacpp.avformat.*;
 import static org.bytedeco.javacpp.avutil.*;
 import static org.bytedeco.javacpp.swscale.*;
 
+import org.bytedeco.javacpp.BytePointer;
+import org.bytedeco.javacpp.DoublePointer;
 import org.protogalaxy.multimedia.MusicContainer;
 
+import java.awt.image.BufferedImage;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,6 +17,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 //TODO: Cover
+
+/**
+ *
+ */
 public class Metadata {
     private String title;
     private String album;
@@ -40,6 +47,7 @@ public class Metadata {
     private String size_kilobytes_formatted;
     private double size_megabytes_raw;
     private String size_megabytes_formatted;
+    private BufferedImage cover;
 
     private String
             METADATA_TITLE = "title",
@@ -140,6 +148,42 @@ public class Metadata {
     }
 
     /**
+     * Read cover from music container
+     *
+     * @param container music file container
+     * @return buffered music cover
+     */
+    private BufferedImage readCover(MusicContainer container) {
+        av_register_all();
+        BufferedImage cover;
+        AVFormatContext avFormatContext = container.getAvFormatContext();
+        AVCodecParameters avCodecParameters = avFormatContext.streams(0).codecpar(); //Get codec parameters
+        AVCodec avCodec = avcodec_find_decoder(avCodecParameters.codec_id()); //Find the decoder
+        AVCodecContext avCodecContext = avcodec_alloc_context3(avCodec); //Begin to decode video stream
+        AVFrame avFrame = av_frame_alloc();
+        AVFrame avFrameRGB = av_frame_alloc();
+        AVPacket avPacket = av_packet_alloc();
+        SwsContext swsContext = sws_getContext(avCodecParameters.width(), avCodecParameters.height(), avCodecParameters.format(),
+                                               avCodecParameters.width(), avCodecParameters.height(), avCodecParameters.format(),
+                                               SWS_BILINEAR, null, null, (DoublePointer) null);
+        avcodec_open2(avCodecContext, avCodec, (AVDictionary) null);
+        avcodec_receive_frame(avCodecContext, avFrame);
+        av_image_fill_arrays(avFrameRGB.data(), avFrame.linesize(), avFrame.data(1), AV_PIX_FMT_RGB24, avCodecParameters.width(), avCodecParameters.height(), 1);
+        sws_scale(swsContext, avFrame.data(), avFrame.linesize(), 0, avCodecParameters.height(), avFrameRGB.data(), avFrameRGB.linesize());
+        cover = saveFrame(avFrameRGB, avCodecParameters.width(), avCodecParameters.height());
+        //Free the packet
+        av_packet_free(avPacket);
+        //Close the codec
+        avcodec_close(avCodecContext);
+        //Free the avCodecContext
+        avcodec_free_context(avCodecContext);
+        //Free the avCodecParameters
+        avcodec_parameters_free(avCodecParameters);
+
+        return cover;
+    }
+
+    /**
      * Format track duration
      *
      * @param duration duration of the track
@@ -204,6 +248,18 @@ public class Metadata {
     private String formatSizeMegabytes(long size) {
         size = size / 1024 / 1024 * 100;
         return String.valueOf((size / 100)) + "." + String.valueOf((size % 100)) + "MB";
+    }
+
+    /**
+     * Save frame into memory
+     *
+     * @param avFrame saved frame
+     * @param width   width of the image
+     * @param height  height of the frame
+     * @return buffered music cover
+     */
+    private BufferedImage saveFrame(AVFrame avFrame, int width, int height) {
+        return null;//TODO content
     }
 
     /**
@@ -388,5 +444,13 @@ public class Metadata {
 
     public String getSize_megabytes_formatted() {
         return size_megabytes_formatted;
+    }
+
+    public BufferedImage getCover() {
+        return cover;
+    }
+
+    public void setCover(BufferedImage cover) {
+        this.cover = cover;
     }
 }
