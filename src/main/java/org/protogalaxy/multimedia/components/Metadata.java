@@ -153,7 +153,7 @@ public class Metadata {
      * @param container music file container
      * @return buffered music cover
      */
-    private BufferedImage readCover(MusicContainer container) {
+    public void readCover(MusicContainer container) {
         av_register_all();
         BufferedImage cover;
         AVFormatContext avFormatContext = container.getAvFormatContext();
@@ -168,9 +168,7 @@ public class Metadata {
                                                SWS_BILINEAR, null, null, (DoublePointer) null);
         avcodec_open2(avCodecContext, avCodec, (AVDictionary) null);
         avcodec_receive_frame(avCodecContext, avFrame);
-        av_image_fill_arrays(avFrameRGB.data(), avFrame.linesize(), avFrame.data(1), AV_PIX_FMT_RGB24, avCodecParameters.width(), avCodecParameters.height(), 1);
-        sws_scale(swsContext, avFrame.data(), avFrame.linesize(), 0, avCodecParameters.height(), avFrameRGB.data(), avFrameRGB.linesize());
-        cover = saveFrame(avFrameRGB, avCodecParameters.width(), avCodecParameters.height());
+        cover = saveFrame(avFrame, avCodecParameters.width(), avCodecParameters.height());
         //Free the packet
         av_packet_free(avPacket);
         //Close the codec
@@ -179,8 +177,6 @@ public class Metadata {
         avcodec_free_context(avCodecContext);
         //Free the avCodecParameters
         avcodec_parameters_free(avCodecParameters);
-
-        return cover;
     }
 
     /**
